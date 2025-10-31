@@ -4,7 +4,7 @@ name: Model Retraining on Push to Main
 on:
   push:
     branches:
-      - main  # Trigger the workflow on pushes to the main branch
+      - main
 
 defaults:
   run:
@@ -81,48 +81,8 @@ jobs:
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Send Email Notification on Success
-      if: success()
+        
+    - name: Verify artifacts
       run: |
-        python - <<EOF
-        import os, requests
-        api_key = os.environ['SENDGRID_API_KEY']
-        payload = {
-            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
-            "from":{"email":"gupta.saumy@northeastern.edu"},
-            "subject":"GitHub Actions Workflow Completed",
-            "content":[{"type":"text/plain","value":"Your workflow has completed successfully. Model retrained and metrics updated."}]
-        }
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
-            json=payload
-        )
-        print(f"Email sent: Status {response.status_code}")
-        if response.status_code != 202: print(response.text)
-        EOF
-      env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-
-    - name: Send Email Notification on Failure
-      if: failure()
-      run: |
-        python - <<EOF
-        import os, requests
-        api_key = os.environ['SENDGRID_API_KEY']
-        payload = {
-            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
-            "from":{"email":"gupta.saumy@northeastern.edu"},
-            "subject":"GitHub Actions Workflow Failed",
-            "content":[{"type":"text/plain","value":"Your workflow has failed. Please check the Actions tab for error details."}]
-        }
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
-            json=payload
-        )
-        print(f"Failure email status: {response.status_code}")
-        EOF
-      env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          test -f "$GITHUB_WORKSPACE/metrics/$metrics_filename" || (echo "Metrics missing!" && exit 1)
+          test -f "$GITHUB_WORKSPACE/models/$model_filename" || (echo "Model missing!" && exit 1)

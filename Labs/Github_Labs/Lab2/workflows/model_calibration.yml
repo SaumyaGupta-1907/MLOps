@@ -30,7 +30,7 @@ jobs:
       run: |
         pip install pytest pytest-cov
         mkdir -p test-reports
-        pytest tests/tests.py \
+        pytest test/tests.py \
             --maxfail=5 --disable-warnings -q \
             --junitxml=test-reports/results.xml \
             --cov=src --cov-report=term-missing
@@ -66,12 +66,17 @@ jobs:
 
     - name: Commit and Push Changes
       run: |
-        git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
-        git config --global user.name "raminmohammadi"
+        git config --global user.email "gupta.saumy@northeastern.edu"
+        git config --global user.name "SaumyaGupta-1907"
         git add $GITHUB_WORKSPACE/metrics/$metrics_filename $GITHUB_WORKSPACE/models/$model_filename
         git commit -m "Add metrics and updated model"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify artifacts
+      run: |
+        test -f "$GITHUB_WORKSPACE/metrics/$metrics_filename" || (echo "Metrics missing!" && exit 1)
+        test -f "$GITHUB_WORKSPACE/models/$model_filename" || (echo "Model missing!" && exit 1)
 
 

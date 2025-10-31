@@ -1,5 +1,5 @@
 
-    name: Model Retraining on Push to Main
+name: Model Retraining on Push to Main
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       run: |
         pip install pytest pytest-cov
         mkdir -p test-reports
-        pytest tests/tests.py \
+        pytest test/tests.py \
             --maxfail=5 --disable-warnings -q \
             --junitxml=test-reports/results.xml \
             --cov=src --cov-report=term-missing
@@ -65,60 +65,23 @@ jobs:
       run: |
         timestamp=$(cat timestamp.txt)
         mkdir -p $GITHUB_WORKSPACE/models
-        model_filename="model_${timestamp}_dt_model.joblib"
+        model_filename="models/model_${timestamp}_dt_model.joblib"
         mv $model_filename $GITHUB_WORKSPACE/models/
 
     - name: Commit and Push Changes
       run: |
-        git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
-        git config --global user.name "raminmohammadi"
+        git config --global user.email "gupta.saumy@northeastern.edu"
+        git config --global user.name "SaumyaGupta-1907"
         git add $GITHUB_WORKSPACE/metrics/$metrics_filename $GITHUB_WORKSPACE/models/$model_filename
         git commit -m "Add metrics and updated model"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Send Email Notification on Success
-      if: success()
+    
+    - name: Verify artifacts
       run: |
-        python - <<EOF
-        import os, requests
-        api_key = os.environ['SENDGRID_API_KEY']
-        payload = {
-            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
-            "from":{"email":"gupta.saumy@northeastern.edu"},
-            "subject":"GitHub Actions Workflow Completed",
-            "content":[{"type":"text/plain","value":"Your workflow has completed successfully. Model retrained and metrics updated."}]
-        }
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
-            json=payload
-        )
-        print(f"Email sent: Status {response.status_code}")
-        if response.status_code != 202: print(response.text)
-        EOF
-      env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        test -f "$GITHUB_WORKSPACE/metrics/$metrics_filename" || (echo "Metrics missing!" && exit 1)
+        test -f "$GITHUB_WORKSPACE/models/$model_filename" || (echo "Model missing!" && exit 1)
 
-    - name: Send Email Notification on Failure
-      if: failure()
-      run: |
-        python - <<EOF
-        import os, requests
-        api_key = os.environ['SENDGRID_API_KEY']
-        payload = {
-            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
-            "from":{"email":"gupta.saumy@northeastern.edu"},
-            "subject":"GitHub Actions Workflow Failed",
-            "content":[{"type":"text/plain","value":"Your workflow has failed. Please check the Actions tab for error details."}]
-        }
-        response = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
-            json=payload
-        )
-        print(f"Failure email status: {response.status_code}")
-        EOF
-      env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+
+ 
