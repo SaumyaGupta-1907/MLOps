@@ -26,6 +26,15 @@ jobs:
         echo "$timestamp" > timestamp.txt
       id: timestamp 
 
+    - name: Run Tests with Pytest
+      run: |
+        pip install pytest pytest-cov
+        mkdir -p test-reports
+        pytest tests/tests.py \
+            --maxfail=5 --disable-warnings -q \
+            --junitxml=test-reports/results.xml \
+            --cov=src --cov-report=term-missing
+
     - name: Check File Permissions
       run: |
         ls -l ./src/train_model.py
@@ -42,16 +51,18 @@ jobs:
     - name: Evaluate Model and Log Metrics
       run: |
         timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python ./src/evaluate_model.py  --timestamp "$timestamp" # Assuming you have a script for model evaluation
-        metrics_filename="${timestamp}_metrics.json"
-        mv $metrics_filename $GITHUB_WORKSPACE/metrics/$metrics_filename
+        python ./src/evaluate_model.py  --timestamp "$timestamp"
+        mkdir -p $GITHUB_WORKSPACE/metrics
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        mv $metrics_filename $GITHUB_WORKSPACE/metrics/
       continue-on-error: false  # Continue even if evaluation fails
 
     - name: Store and Version the New Model
       run: |
         timestamp=$(cat timestamp.txt)
+        mkdir -p $GITHUB_WORKSPACE/models
         model_filename="model_${timestamp}_dt_model.joblib"
-        mv $model_filename $GITHUB_WORKSPACE/models/$model_filename
+        mv $model_filename $GITHUB_WORKSPACE/models/
 
     - name: Commit and Push Changes
       run: |
@@ -62,6 +73,5 @@ jobs:
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
 

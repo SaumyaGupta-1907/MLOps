@@ -4,3 +4,6 @@ pandas
 pytest
 ipykernel
 mlflow
+xgboost
+joblib
+pytest

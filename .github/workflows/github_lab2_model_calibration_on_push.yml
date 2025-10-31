@@ -1,10 +1,14 @@
-name: Model Retraining on Push to Main - Ghithub Lab 2
- 
+
+name: Model Retraining on Push to Main
 
 on:
   push:
     branches:
       - main  # Trigger the workflow on pushes to the main branch
+
+defaults:
+  run:
+    working-directory: ./Labs/Github_Labs/Lab2/
 
 jobs:
   retrain:
@@ -12,15 +16,24 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: 3.9
 
     - name: Install dependencies
-      run: pip install -r Labs/Github_Labs/Lab2/requirements.txt
+      run: pip install -r requirements.txt
+
+    - name: Run Tests with Pytest
+      run: |
+        pip install pytest pytest-cov
+        mkdir -p test-reports
+        pytest test/tests.py \
+            --maxfail=5 --disable-warnings -q \
+            --junitxml=test-reports/results.xml \
+            --cov=src --cov-report=term-missing
 
     - name: Generate and Store Timestamp
       run: |
@@ -30,37 +43,86 @@ jobs:
 
     - name: Check File Permissions
       run: |
-        ls -l Labs/Github_Labs/Lab2/src/train_model.py
+        ls -l ./src/train_model.py
 
     - name: Set File Permissions
       run: |
-        chmod +x Labs/Github_Labs/Lab2/src/train_model.py
+        chmod +x ./src/train_model.py #making it executable
 
     - name: Retrain Model
       run: |
         timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python Labs/Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
+        python ./src/train_model.py --timestamp "$timestamp"
 
     - name: Evaluate Model and Log Metrics
       run: |
         timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python Labs/Github_Labs/Lab2/src/evaluate_model.py  --timestamp "$timestamp" # Assuming you have a script for model evaluation
-        metrics_filename="${timestamp}_metrics.json"
-        mv $metrics_filename Labs/Github_Labs/Lab2/metrics/$metrics_filename
-      continue-on-error: false  # Continue even if evaluation fails
+        python ./src/evaluate_model.py  --timestamp "$timestamp"
+        ls
+        pwd
+        mkdir -p $GITHUB_WORKSPACE/metrics
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        mv $metrics_filename $GITHUB_WORKSPACE/metrics/
+      continue-on-error: false
 
     - name: Store and Version the New Model
       run: |
         timestamp=$(cat timestamp.txt)
-        model_filename="model_${timestamp}_dt_model.joblib"
-        mv $model_filename Labs/Github_Labs/Lab2/models/$model_filename
+        mkdir -p $GITHUB_WORKSPACE/models
+        model_filename="models/model_${timestamp}_dt_model.joblib"
+        mv $model_filename $GITHUB_WORKSPACE/models/
 
     - name: Commit and Push Changes
       run: |
-        git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
-        git config --global user.name "raminmohammadi"
-        git add Labs/Github_Labs/Lab2/metrics/$metrics_filename Labs/Github_Labs/Lab2/models/$model_filename
+        git config --global user.email "gupta.saumy@northeastern.edu"
+        git config --global user.name "SaumyaGupta-1907"
+        git add $GITHUB_WORKSPACE/metrics/$metrics_filename $GITHUB_WORKSPACE/models/$model_filename
         git commit -m "Add metrics and updated model"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Send Email Notification on Success
+      if: success()
+      run: |
+        python - <<EOF
+        import os, requests
+        api_key = os.environ['SENDGRID_API_KEY']
+        payload = {
+            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
+            "from":{"email":"gupta.saumy@northeastern.edu"},
+            "subject":"GitHub Actions Workflow Completed",
+            "content":[{"type":"text/plain","value":"Your workflow has completed successfully. Model retrained and metrics updated."}]
+        }
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
+            json=payload
+        )
+        print(f"Email sent: Status {response.status_code}")
+        if response.status_code != 202: print(response.text)
+        EOF
+      env:
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+
+    - name: Send Email Notification on Failure
+      if: failure()
+      run: |
+        python - <<EOF
+        import os, requests
+        api_key = os.environ['SENDGRID_API_KEY']
+        payload = {
+            "personalizations":[{"to":[{"email":"saumya08gupta@gmail.com"}]}],
+            "from":{"email":"gupta.saumy@northeastern.edu"},
+            "subject":"GitHub Actions Workflow Failed",
+            "content":[{"type":"text/plain","value":"Your workflow has failed. Please check the Actions tab for error details."}]
+        }
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},
+            json=payload
+        )
+        print(f"Failure email status: {response.status_code}")
+        EOF
+      env:
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
