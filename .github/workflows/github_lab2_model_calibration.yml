@@ -52,23 +52,23 @@ jobs:
         timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
         python ./src/train_model.py --timestamp "$timestamp"
 
-        - name: Evaluate Model and Log Metrics
-        run: |
-          timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-          python ./src/evaluate_model.py  --timestamp "$timestamp"
-          ls
-          pwd
-          mkdir -p $GITHUB_WORKSPACE/metrics
-          metrics_filename="metrics/${timestamp}_metrics.json"
-          mv $metrics_filename $GITHUB_WORKSPACE/metrics/
-        continue-on-error: false
+    - name: Evaluate Model and Log Metrics
+      run: |
+        timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
+        python ./src/evaluate_model.py  --timestamp "$timestamp"
+        ls
+        pwd
+        mkdir -p $GITHUB_WORKSPACE/metrics
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        mv $metrics_filename $GITHUB_WORKSPACE/metrics/
+      continue-on-error: false
   
     - name: Store and Version the New Model
       run: |
-          timestamp=$(cat timestamp.txt)
-          mkdir -p $GITHUB_WORKSPACE/models
-          model_filename="models/model_${timestamp}_dt_model.joblib"
-          mv $model_filename $GITHUB_WORKSPACE/models/
+        timestamp=$(cat timestamp.txt)
+        mkdir -p $GITHUB_WORKSPACE/models
+        model_filename="models/model_${timestamp}_dt_model.joblib"
+        mv $model_filename $GITHUB_WORKSPACE/models/
 
     - name: Commit and Push Changes
       run: |
