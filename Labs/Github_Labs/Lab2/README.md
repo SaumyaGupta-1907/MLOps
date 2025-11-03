@@ -99,3 +99,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 # Questions or Issues
 If you have any questions or encounter issues while using this GitHub Actions workflow, please open an issue in the Issues section of your repository.
 
+# Updated Dataset and Model Configuration
+
+This update enhances the model training and validation pipeline with a new dataset, model architecture, and improved continuous integration setup.
+
+## Key Updates
+
+- **Dataset Change:** Replaced the previous dataset with the **Wine dataset** to enable multi-class classification and more diverse feature analysis.  
+- **Model Upgrade:** Switched from the previous classifier to **XGBoost**, improving accuracy, robustness, and training efficiency.  
+- **Extended Testing:** Added new test cases in `test/tests.py` to cover additional validation scenarios and ensure model reliability.  
+- **Enhanced CI/CD Workflows:**  
+  - Updated `.github/github_lab2_model_calibration_on_push.yml` and `.github/github_lab2_model_calibration.yml`  
+  - Integrated new tests and **accuracy validation checks** within the automated GitHub Actions pipeline to maintain performance standards.  
+
+## Purpose
+
+These improvements strengthen the MLOps workflow by ensuring the model adapts to new data, achieves higher performance, and is continuously validated through automated testing and retraining pipelines.
+
+
