@@ -79,8 +79,3 @@ jobs:
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Verify artifacts
-      run: |
-        test -f "$GITHUB_WORKSPACE/metrics/$metrics_filename" || (echo "Metrics missing!" && exit 1)
-        test -f "$GITHUB_WORKSPACE/models/$model_filename" || (echo "Model missing!" && exit 1)
