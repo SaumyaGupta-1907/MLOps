@@ -110,7 +110,7 @@ This update enhances the model training and validation pipeline with a new datas
 - **Extended Testing:** Added new test cases in `test/tests.py` to cover additional validation scenarios and ensure model reliability.  
 - **Enhanced CI/CD Workflows:**  
   - Updated `.github/github_lab2_model_calibration_on_push.yml` and `.github/github_lab2_model_calibration.yml`  
-  - Integrated new tests and **accuracy validation checks** within the automated GitHub Actions pipeline to maintain performance standards.  
+  - Integrated new tests in the flow and **accuracy validation checks with logging** within the automated GitHub Actions pipeline to maintain performance standards.  
 
 ## Purpose
 
