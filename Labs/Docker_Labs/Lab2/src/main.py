@@ -4,46 +4,76 @@ import numpy as np
 
 app = Flask(__name__, static_folder='statics')
 
-# URL of your Flask API for making predictions
-api_url = 'http://0.0.0.0:4000/predict'  # Update with the actual URL
-
-# Load the TensorFlow model
-model = tf.keras.models.load_model('my_model.keras')  # Replace 'my_model.keras' with the actual model file
-class_labels = ['Setosa', 'Versicolor', 'Virginica']
-
-
-"""Modern web apps use a technique named routing. This helps the user remember the URLs. 
-For instance, instead of having /booking.php they see /booking/. Instead of /account.asp?id=1234/ 
-they’d see /account/1234/."""
+# Load the initial trained CIFAR-10 model
+model = tf.keras.models.load_model('my_model.keras')
+class_labels = [
+    "airplane", "automobile", "bird", "cat", "deer",
+    "dog", "frog", "horse", "ship", "truck"
+]
 
 @app.route('/')
 def home():
-    return "Welcome to the Iris Classifier API!"
+    return "Welcome to the CIFAR-10 Classifier API!"
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
     if request.method == 'POST':
         try:
-            data = request.form
-            sepal_length = float(data['sepal_length'])
-            sepal_width = float(data['sepal_width'])
-            petal_length = float(data['petal_length'])
-            petal_width = float(data['petal_width'])
+            data = request.get_json(force=True)
+            if 'image' not in data:
+                return jsonify({"error": "Missing 'image' key in JSON"}), 400
 
-            # Perform the prediction
-            input_data = np.array([sepal_length, sepal_width, petal_length, petal_width])[np.newaxis, ]
+            input_array = np.array(data['image'], dtype=np.float32)
+            if input_array.shape != (32, 32, 3):
+                return jsonify({"error": "Input image must be shape (32,32,3)"}), 400
+
+            input_array = input_array / 255.0
+            input_data = np.expand_dims(input_array, axis=0)
+
             prediction = model.predict(input_data)
             predicted_class = class_labels[np.argmax(prediction)]
 
-            # Return the predicted class in the response
-            # Use jsonify() instead of json.dumps() in Flask
             return jsonify({"predicted_class": predicted_class})
         except Exception as e:
-            return jsonify({"error": str(e)})
+            return jsonify({"error": str(e)}), 500
     elif request.method == 'GET':
         return render_template('predict.html')
     else:
-        return "Unsupported HTTP method"
+        return "Unsupported HTTP method", 405
+
+@app.route('/train', methods=['POST'])
+def train():
+    """
+    Retrain the model on CIFAR-10 dataset.
+    Accepts optional JSON payload for epochs and batch_size:
+    {"epochs": 5, "batch_size": 64}
+    """
+    try:
+        # Parse optional hyperparameters
+        data = request.get_json(force=True) if request.data else {}
+        epochs = int(data.get("epochs", 5))
+        batch_size = int(data.get("batch_size", 64))
+
+        # Load CIFAR-10 dataset
+        (X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
+        X_train, X_test = X_train.astype("float32") / 255.0, X_test.astype("float32") / 255.0
+        y_train, y_test = y_train.flatten(), y_test.flatten()
+
+        # Retrain the model
+        model.fit(
+            X_train, y_train,
+            epochs=epochs,
+            batch_size=batch_size,
+            validation_data=(X_test, y_test)
+        )
+
+        # Save the updated model
+        model.save("my_model.keras")
+        model.save("saved_model")
+
+        return jsonify({"message": f"Model retrained for {epochs} epochs, batch_size={batch_size}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=4000)
