@@ -88,15 +88,12 @@ def main():
     )
     logging.info("Training completed.")
     
-    # Save models
     model.save("my_model.keras")
     model.save("saved_model")
     logging.info("Models saved in .keras and SavedModel formats.")
     
     evaluate_and_save_metrics(model, X_test, y_test)
-    
-    # Quick inference check
-    sample = X_test[:5]
+        sample = X_test[:5]
     predictions = model.predict(sample).argmax(axis=1)
     logging.info(f"Sample predictions: {predictions}")
     print(f"Sample predictions: {predictions}")
