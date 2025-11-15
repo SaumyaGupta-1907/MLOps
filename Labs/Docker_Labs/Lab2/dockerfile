@@ -1,44 +1,77 @@
-# Stage 1: Build and Train the Model
-FROM python:3.9 AS model_training
+# Stage 1: Model Training
+FROM python:3.9-slim AS model_training
 
+# Set working directory
 WORKDIR /app
 
-# Copy the source code for model training
+# create virtual environment
+RUN python -m venv /app/venv
+
+# upgrade pip inside the environment
+RUN /app/venv/bin/pip install --upgrade pip
+
+# install dependencies inside the environment
+COPY requirements.txt /app/
+RUN /app/venv/bin/pip install -r requirements.txt
+
+# Copy training scripts and requirements
 COPY src/model_training.py /app/
 
-# Install any needed packages specified in requirements.txt
-COPY requirements.txt /app/
-RUN pip install -r requirements.txt
+# Install system dependencies for TensorFlow and image handling
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    wget \
+    git \
+    libgl1 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Run the model training script
-RUN python model_training.py
+# Install Python packages
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Stage 2: Serve Predictions
-FROM python:3.9 AS serving
+# Run training script (produces my_model.keras, saved_model, metrics.json, etc.)
+RUN python model_training.py --epochs 10 --batch_size 64
+
+# Stage 2: Serving
+FROM python:3.9-slim AS serving
 
 WORKDIR /app
 
-# Copy the trained model from the previous stage
+# Copy trained model artifacts from training stage
 COPY --from=model_training /app/my_model.keras /app/
+COPY --from=model_training /app/saved_model /app/saved_model
+COPY --from=model_training /app/metrics.json /app/
+COPY --from=model_training /app/training.log /app/
 
-# Copy the source code for serving predictions
+# Copy serving code and templates/statics
 COPY src/main.py /app/
-
-# Expose port 80
-EXPOSE 80
-
-# Define environmental variables
-ENV NAME World
-
-# Install any needed packages specified in requirements.txt for the serving stage
-COPY requirements.txt /app/
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
-
-# Copy the templates directory
 COPY src/templates /app/templates
-
-# Copy the statics directory
 COPY src/statics /app/statics
 
-# Run the Flask application for serving predictions
-CMD ["python", "main.py"]
+# Install only runtime requirements (lighter image)
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir --trusted-host pypi.python.org -r requirements.txt
+
+# Expose Flask API port
+EXPOSE 4000
+
+# Optional environment variables
+ENV FLASK_ENV=production
+ENV FLASK_APP=main.py
+
+# Enable GPU support if using tensorflow-gpu (optional)
+# ENV TF_FORCE_GPU_ALLOW_GROWTH=true
+
+# Health check endpoint to monitor container
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD curl --fail http://localhost:4000/ || exit 1
+
+# Start Flask server with production-ready WSGI
+# Using Gunicorn for better concurrency and performance
+RUN pip install gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:4000", "--workers", "4", "main:app"]
