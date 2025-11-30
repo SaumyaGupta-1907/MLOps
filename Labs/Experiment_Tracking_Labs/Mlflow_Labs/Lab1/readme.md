@@ -51,4 +51,4 @@ This Lab assignment includes training and evaluation of multiple machine learnin
 * Best model detailed analysis
 * Error analysis visualization
 
-We have Automated model training and comparison with MLFlow. All code and respective results can be seen in mlflow_labs.ipynb file , with reports in reports/ directory , plots in plots/ directory and screenshots of mlflow UI can also be found in the same directory. In  mlflow_labs.ipynb file we can also see results of the api exposed by serving mlflow. Results of different runs can be seen in mlruns directory.
+We have Automated model training and comparison with MLFlow. All code and respective results can be seen in `mlflow_labs.ipynb` file , with reports in `reports/` directory , plots in `plots/` directory and `screenshots` of mlflow UI can also be found in the same directory. In  mlflow_labs.ipynb file we can also see results of the api exposed by serving mlflow. Results of different runs can be seen in `mlruns/` directory.
