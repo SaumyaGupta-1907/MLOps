@@ -1,7 +1,7 @@
 # Breast Cancer Classification with MLflow Lab
 
 ## Whats new that I have added?
-This project trains and evaluates multiple machine learning models on the Breast Cancer dataset while tracking everything through MLflow.
+This Lab assignment includes training and evaluation of multiple machine learning models on the Breast Cancer dataset while tracking everything through MLflow.
 * Loaded and Used the Breast Cancer dataset from sklearn
 * Trained four models: Random Forest, Gradient Boosting, SVM, Logistic Regression
 * Tuned hyperparameters using GridSearchCV
